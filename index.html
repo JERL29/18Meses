@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reino Encantado 🏰</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body, html {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Georgia', serif;
+      background: linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 100%);
+    }
+    
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .titulo {
+      position: absolute;
+      top: 20px;
+      width: 100%;
+      text-align: center;
+      color: #fff;
+      font-size: 2.5rem;
+      font-weight: bold;
+      text-shadow: 
+        0 0 10px rgba(255, 215, 0, 0.8),
+        0 0 20px rgba(255, 215, 0, 0.6),
+        2px 2px 4px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      letter-spacing: 3px;
+    }
+    
+    .info-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      z-index: 10;
+      backdrop-filter: blur(5px);
+      border: 2px solid rgba(255, 215, 0, 0.3);
+      max-width: 300px;
+    }
+    
+    .info-panel h3 {
+      color: #ffd700;
+      margin-bottom: 12px;
+      font-size: 1.1rem;
+    }
+    
+    .info-panel p {
+      margin: 6px 0;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .mensaje-zona {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 30px 40px;
+      border-radius: 20px;
+      z-index: 100;
+      border: 3px solid #ffd700;
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+      max-width: 500px;
+      text-align: center;
+      display: none;
+      animation: aparecerMensaje 0.3s ease-out;
+    }
+
+    @keyframes aparecerMensaje {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    .mensaje-zona h2 {
+      color: #ffd700;
+      margin-bottom: 15px;
+      font-size: 1.8rem;
+    }
+
+    .mensaje-zona p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .mensaje-zona button {
+      background: #ffd700;
+      color: #000;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .mensaje-zona button:hover {
+      background: #ffed4e;
+      transform: scale(1.05);
+    }
+
+    .indicador-zona {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 215, 0, 0.9);
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: bold;
+      display: none;
+      z-index: 10;
+      animation: pulsar 1s ease-in-out infinite;
+    }
+
+    @keyframes pulsar {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.05); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="titulo">✨ Reino Encantado ✨</div>
+  
+  <div class="info-panel">
+    <h3>🎮 Controles</h3>
+    <p>⬆️⬇️⬅️➡️ <strong>Flechas:</strong> Mover princesa</p>
+    <p>🖱️ <strong>Arrastrar:</strong> Rotar cámara</p>
+    <p>🔍 <strong>Scroll:</strong> Zoom in/out</p>
+    <p>⌨️ <strong>E:</strong> Interactuar en zonas</p>
+    <p style="color: #ffd700; margin-top: 10px;">📹 <strong>La cámara te sigue!</strong></p>
+    <p style="color: #4ade80; margin-top: 5px;">💡 <strong>¡7 zonas por descubrir!</strong></p>
+  </div>
+
+  <div class="indicador-zona" id="indicadorZona">
+    Presiona E para interactuar
+  </div>
+
+  <div class="mensaje-zona" id="mensajeZona">
+    <h2 id="mensajeTitulo"></h2>
+    <p id="mensajeTexto"></p>
+    <button onclick="cerrarMensaje()">Cerrar</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    console.log('🏰 Iniciando Reino Encantado...');
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    
+    const sunLight = new THREE.DirectionalLight(0xfff4e6, 1.5);
+    sunLight.position.set(50, 100, 50);
+    sunLight.castShadow = true;
+    sunLight.shadow.camera.left = -200;
+    sunLight.shadow.camera.right = 200;
+    sunLight.shadow.camera.top = 200;
+    sunLight.shadow.camera.bottom = -200;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    scene.add(sunLight);
+    
+    const fillLight = new THREE.DirectionalLight(0xadd8e6, 0.4);
+    fillLight.position.set(-30, 50, -30);
+    scene.add(fillLight);
+
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 100, 800);
+
+    const groundGeometry = new THREE.PlaneGeometry(600, 600);
+    const groundMaterial = new THREE.MeshStandardMaterial({ 
+      color: 0x3a6b35,
+      roughness: 0.9
+    });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // MONTAÑAS
+    function crearMontana(x, z, altura, anchura) {
+      const montanaGeom = new THREE.ConeGeometry(anchura, altura, 6);
+      const montanaMat = new THREE.MeshStandardMaterial({ 
+        color: 0x2d5016,
+        roughness: 0.9
+      });
+      const montana = new THREE.Mesh(montanaGeom, montanaMat);
+      montana.position.set(x, altura / 2, z);
+      montana.castShadow = true;
+      montana.receiveShadow = true;
+      
+      const cimaGeom = new THREE.ConeGeometry(anchura * 0.5, altura * 0.3, 6);
+      const cimaMat = new THREE.MeshStandardMaterial({ color: 0x4a7c2c });
+      const cima = new THREE.Mesh(cimaGeom, cimaMat);
+      cima.position.y = altura * 0.7;
+      montana.add(cima);
+      
+      return montana;
+    }
+
+    scene.add(crearMontana(-150, -180, 80, 50));
+    scene.add(crearMontana(-80, -190, 100, 60));
+    scene.add(crearMontana(0, -185, 90, 55));
+    scene.add(crearMontana(80, -190, 95, 58));
+    scene.add(crearMontana(150, -180, 85, 52));
+    scene.add(crearMontana(-120, 170, 60, 40));
+    scene.add(crearMontana(-60, 175, 70, 45));
+    scene.add(crearMontana(0, 180, 65, 42));
+    scene.add(crearMontana(60, 175, 68, 44));
+    scene.add(crearMontana(120, 170, 62, 41));
+
+    // ==========================================
+    // 📸 TEXTURAS PARA BANDERAS - EDITA AQUÍ
+    // ==========================================
+    const textureLoader = new THREE.TextureLoader();
+    
+    console.log('📸 Cargando imágenes para banderas...');
+    
+    // 🔧 CAMBIAR NOMBRES DE ARCHIVOS AQUÍ:
+    const texturaBandera1 = textureLoader.load('1.jpeg', 
+      () => console.log('✅ Imagen 1.jpeg cargada'),
+      undefined,
+      (err) => console.error('❌ Error cargando 1.jpeg:', err)
+    );
+    
+    const texturaBandera2 = textureLoader.load('2.jpeg',
+      () => console.log('✅ Imagen 2.jpeg cargada'),
+      undefined,
+      (err) => console.error('❌ Error cargando 2.jpeg:', err)
+    );
+    
+    const texturaBandera3 = textureLoader.load('3.jpeg',
+      () => console.log('✅ Imagen 3.jpeg cargada'),
+      undefined,
+      (err) => console.error('❌ Error cargando 3.jpeg:', err)
+    );
+    
+    const texturaBandera4 = textureLoader.load('4.jpeg',
+  () => console.log('✅ Imagen 4.jpeg cargada'),
+  undefined,
+  (err) => console.error('❌ Error cargando 4.jpeg:', err)
+);
+
+
+// 🔢 FUNCIÓN PARA CREAR EL NÚMERO 18
+function crearNumero18() {
+  const numero = new THREE.Group();
+
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xffd700,
+    metalness: 0.9,
+    roughness: 0.2,
+    emissive: 0xffd700,
+    emissiveIntensity: 0.4
+  });
+
+  // Número 1
+  const uno = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 8, 1),
+    material
+  );
+  uno.position.x = -3;
+  numero.add(uno);
+
+  // Número 8
+  const arriba = new THREE.Mesh(
+    new THREE.TorusGeometry(2.5, 0.6, 16, 50),
+    material
+  );
+  arriba.position.y = 2.5;
+  numero.add(arriba);
+
+  const abajo = new THREE.Mesh(
+    new THREE.TorusGeometry(2.5, 0.6, 16, 50),
+    material
+  );
+  abajo.position.y = -2.5;
+  numero.add(abajo);
+
+  return numero;
+}
+
+
+    // CASTILLO CON BANDERAS
+    function crearCastillo() {
+      const castillo = new THREE.Group();
+
+      const baseGeom = new THREE.BoxGeometry(40, 20, 40);
+      const baseMat = new THREE.MeshStandardMaterial({ 
+        color: 0x8b7355,
+        roughness: 0.8
+      });
+      const base = new THREE.Mesh(baseGeom, baseMat);
+      base.position.y = 10;
+      base.castShadow = true;
+      base.receiveShadow = true;
+      castillo.add(base);
+
+      // 🚩 FUNCIÓN PARA CREAR TORRE CON BANDERA
+      function crearTorre(x, z, textura) {
+        const torre = new THREE.Group();
+        
+        const cuerpo = new THREE.Mesh(
+          new THREE.CylinderGeometry(5, 5, 35, 8),
+          new THREE.MeshStandardMaterial({ color: 0xa0826d })
+        );
+        cuerpo.castShadow = true;
+        torre.add(cuerpo);
+
+        const techo = new THREE.Mesh(
+          new THREE.ConeGeometry(7, 10, 8),
+          new THREE.MeshStandardMaterial({ color: 0x8b0000 })
+        );
+        techo.position.y = 22.5;
+        techo.castShadow = true;
+        torre.add(techo);
+
+        const asta = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.2, 0.2, 12),
+          new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+        );
+        asta.position.y = 33.5;
+        torre.add(asta);
+
+        // 🎨 BANDERA CON TU IMAGEN (NO CORONA)
+        const banderaGeom = new THREE.PlaneGeometry(5, 4);
+        const banderaMat = new THREE.MeshStandardMaterial({ 
+          map: textura,
+          side: THREE.DoubleSide,
+          transparent: false
+        });
+        const bandera = new THREE.Mesh(banderaGeom, banderaMat);
+        bandera.position.set(2.5, 35, 0);
+        bandera.rotation.y = Math.PI / 2;
+        torre.add(bandera);
+
+        torre.position.set(x, 17.5, z);
+        return torre;
+      }
+
+      // 🏰 CREAR 4 TORRES CON DIFERENTES IMÁGENES
+      castillo.add(crearTorre(-15, -15, texturaBandera1));
+      castillo.add(crearTorre(15, -15, texturaBandera2));
+      castillo.add(crearTorre(-15, 15, texturaBandera3));
+      castillo.add(crearTorre(15, 15, texturaBandera4));
+
+      const puerta = new THREE.Mesh(
+        new THREE.BoxGeometry(8, 12, 1),
+        new THREE.MeshStandardMaterial({ color: 0x3d2817 })
+      );
+      puerta.position.set(0, 6, 20.5);
+      puerta.castShadow = true;
+      castillo.add(puerta);
+
+      for (let i = -1; i <= 1; i++) {
+        if (i === 0) continue;
+        const ventana = new THREE.Mesh(
+          new THREE.BoxGeometry(3, 4, 0.5),
+          new THREE.MeshStandardMaterial({ 
+            color: 0x4169e1,
+            emissive: 0x4169e1,
+            emissiveIntensity: 0.3
+          })
+        );
+        ventana.position.set(i * 10, 15, 20.5);
+        castillo.add(ventana);
+      }
+
+      return castillo;
+    }
+
+    const castillo = crearCastillo();
+    scene.add(castillo);
+
+
+    // 🔢 18 pegado a la pared frontal
+const numeroFrontal = crearNumero18();
+numeroFrontal.position.set(0, 15, 21);
+scene.add(numeroFrontal);
+
+// 🔢 18 pegado a la pared trasera
+const numeroTrasero = crearNumero18();
+numeroTrasero.position.set(0, 15, -21);
+numeroTrasero.rotation.y = Math.PI;
+scene.add(numeroTrasero);
+
+
+    // PRINCESA
+    function crearPrincesa() {
+      const princesa = new THREE.Group();
+      
+      const vestido = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.5, 3.5, 7, 16),
+        new THREE.MeshStandardMaterial({ 
+          color: 0xff69b4,
+          roughness: 0.5
+        })
+      );
+      vestido.castShadow = true;
+      princesa.add(vestido);
+      
+      const cabeza = new THREE.Mesh(
+        new THREE.SphereGeometry(1.2, 16, 16),
+        new THREE.MeshStandardMaterial({ color: 0xffdab9 })
+      );
+      cabeza.position.y = 4.5;
+      cabeza.castShadow = true;
+      princesa.add(cabeza);
+      
+      const corona = new THREE.Mesh(
+        new THREE.ConeGeometry(1, 1.5, 6),
+        new THREE.MeshStandardMaterial({ 
+          color: 0xffd700,
+          metalness: 0.9,
+          roughness: 0.1
+        })
+      );
+      corona.position.y = 6;
+      princesa.add(corona);
+
+      const ojoGeom = new THREE.SphereGeometry(0.15, 8, 8);
+      const ojoMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+      
+      const ojoIzq = new THREE.Mesh(ojoGeom, ojoMat);
+      ojoIzq.position.set(-0.4, 4.7, 1);
+      princesa.add(ojoIzq);
+      
+      const ojoDer = new THREE.Mesh(ojoGeom, ojoMat);
+      ojoDer.position.set(0.4, 4.7, 1);
+      princesa.add(ojoDer);
+      
+      princesa.position.set(-25, 3.5, 15);
+      return princesa;
+    }
+    
+    const princesa = crearPrincesa();
+    scene.add(princesa);
+
+    // SENDERO
+    function crearSendero() {
+      const sendero = new THREE.Group();
+      
+      for (let i = 0; i <= 85; i++) {
+        const t = i / 85;
+        const z = t * 170;
+        const x = Math.sin(t * Math.PI * 2) * 8;
+        
+        const segmento = new THREE.Mesh(
+          new THREE.BoxGeometry(4, 0.2, 2.5),
+          new THREE.MeshStandardMaterial({ 
+            color: 0x8b7355,
+            roughness: 0.9
+          })
+        );
+        segmento.position.set(x, 0.1, z);
+        segmento.receiveShadow = true;
+        sendero.add(segmento);
+      }
+      
+      return sendero;
+    }
+
+    const sendero = crearSendero();
+    scene.add(sendero);
+
+    // BANCA
+    function crearBanca(x, z, rotacion = 0) {
+      const banca = new THREE.Group();
+      
+      const asiento = new THREE.Mesh(
+        new THREE.BoxGeometry(4, 0.3, 1.5),
+        new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+      );
+      asiento.position.y = 1.5;
+      asiento.castShadow = true;
+      banca.add(asiento);
+      
+      const respaldo = new THREE.Mesh(
+        new THREE.BoxGeometry(4, 2, 0.3),
+        new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+      );
+      respaldo.position.set(0, 2.2, -0.6);
+      respaldo.castShadow = true;
+      banca.add(respaldo);
+      
+      const pataGeom = new THREE.BoxGeometry(0.3, 1.5, 0.3);
+      const pataMat = new THREE.MeshStandardMaterial({ color: 0x654321 });
+      
+      const posicionesPatas = [
+        [-1.5, 0.75, -0.5], [1.5, 0.75, -0.5],
+        [-1.5, 0.75, 0.5], [1.5, 0.75, 0.5]
+      ];
+      
+      posicionesPatas.forEach(pos => {
+        const pata = new THREE.Mesh(pataGeom, pataMat);
+        pata.position.set(...pos);
+        pata.castShadow = true;
+        banca.add(pata);
+      });
+      
+      banca.position.set(x, 0, z);
+      banca.rotation.y = rotacion;
+      return banca;
+    }
+
+    const banca = crearBanca(0, 100, 0);
+    scene.add(banca);
+
+    // MARIPOSAS
+    const grupoMariposas = new THREE.Group();
+    grupoMariposas.position.set(50, 5, 50);
+
+    function crearMariposa(offsetX, offsetY, offsetZ) {
+      const mariposa = new THREE.Group();
+      
+      const cuerpo = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.1, 1),
+        new THREE.MeshStandardMaterial({ color: 0x000000 })
+      );
+      mariposa.add(cuerpo);
+      
+      const alaGeom = new THREE.CircleGeometry(0.5, 8);
+      const alaMat = new THREE.MeshStandardMaterial({ 
+        color: 0xff69b4,
+        side: THREE.DoubleSide,
+        emissive: 0xff69b4,
+        emissiveIntensity: 0.3
+      });
+      
+      const alaIzq = new THREE.Mesh(alaGeom, alaMat);
+      alaIzq.position.set(-0.4, 0.2, 0);
+      alaIzq.rotation.y = Math.PI / 4;
+      mariposa.add(alaIzq);
+      
+      const alaDer = new THREE.Mesh(alaGeom, alaMat);
+      alaDer.position.set(0.4, 0.2, 0);
+      alaDer.rotation.y = -Math.PI / 4;
+      mariposa.add(alaDer);
+      
+      mariposa.position.set(offsetX, offsetY, offsetZ);
+      return mariposa;
+    }
+
+    for (let i = 0; i < 15; i++) {
+      const angulo = (i / 15) * Math.PI * 2;
+      const radio = 5;
+      const x = Math.cos(angulo) * radio;
+      const z = Math.sin(angulo) * radio;
+      const y = Math.sin(i) * 2;
+      grupoMariposas.add(crearMariposa(x, y, z));
+    }
+
+    scene.add(grupoMariposas);
+
+    // FRESAS
+    const huertoFresas = new THREE.Group();
+    huertoFresas.position.set(-60, 0, 60);
+
+    function crearPlantaFresa(x, z) {
+      const planta = new THREE.Group();
+      
+      const hojas = new THREE.Mesh(
+        new THREE.SphereGeometry(0.8, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0x228b22 })
+      );
+      hojas.position.y = 0.5;
+      hojas.scale.y = 0.5;
+      planta.add(hojas);
+      
+      for (let i = 0; i < 3; i++) {
+        const fresa = new THREE.Mesh(
+          new THREE.SphereGeometry(0.3, 8, 8),
+          new THREE.MeshStandardMaterial({ 
+            color: 0xff0000,
+            roughness: 0.6
+          })
+        );
+        fresa.position.set(
+          (Math.random() - 0.5) * 1,
+          0.3 + Math.random() * 0.3,
+          (Math.random() - 0.5) * 1
+        );
+        fresa.scale.y = 1.2;
+        planta.add(fresa);
+      }
+      
+      planta.position.set(x, 0, z);
+      return planta;
+    }
+
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 5; j++) {
+        huertoFresas.add(crearPlantaFresa(i * 3 - 6, j * 3 - 6));
+      }
+    }
+
+    scene.add(huertoFresas);
+
+    // TULIPANES
+    const campoTulipanes = new THREE.Group();
+    campoTulipanes.position.set(-60, 0, -60);
+
+    function crearTulipan(x, z, color) {
+      const tulipan = new THREE.Group();
+      
+      const tallo = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 2),
+        new THREE.MeshStandardMaterial({ color: 0x228b22 })
+      );
+      tallo.position.y = 1;
+      tulipan.add(tallo);
+      
+      const flor = new THREE.Mesh(
+        new THREE.SphereGeometry(0.4, 8, 8),
+        new THREE.MeshStandardMaterial({ 
+          color: color,
+          roughness: 0.4
+        })
+      );
+      flor.position.y = 2.2;
+      flor.scale.y = 1.3;
+      tulipan.add(flor);
+      
+      tulipan.position.set(x, 0, z);
+      return tulipan;
+    }
+
+    const coloresTulipanes = [0xff69b4, 0x00ff00, 0x4169e1];
+    for (let i = 0; i < 10; i++) {
+      for (let j = 0; j < 10; j++) {
+        const color = coloresTulipanes[Math.floor(Math.random() * 3)];
+        campoTulipanes.add(crearTulipan(
+          i * 2 - 9 + (Math.random() - 0.5) * 0.5,
+          j * 2 - 9 + (Math.random() - 0.5) * 0.5,
+          color
+        ));
+      }
+    }
+
+    scene.add(campoTulipanes);
+
+    // RÍO
+    function crearRio() {
+      const rio = new THREE.Group();
+      
+      for (let i = 0; i < 50; i++) {
+        const t = i / 50;
+        const x = 60;
+        const z = -100 + t * 200;
+        const offsetX = Math.sin(t * Math.PI * 3) * 8;
+        
+        const segmento = new THREE.Mesh(
+          new THREE.PlaneGeometry(12, 5),
+          new THREE.MeshStandardMaterial({ 
+            color: 0x4682b4,
+            transparent: true,
+            opacity: 0.7,
+            roughness: 0.1,
+            metalness: 0.8
+          })
+        );
+        segmento.rotation.x = -Math.PI / 2;
+        segmento.position.set(x + offsetX, 0.2, z);
+        rio.add(segmento);
+      }
+      
+      return rio;
+    }
+
+    const rio = crearRio();
+    scene.add(rio);
+
+    // ÁRBOLES
+    function crearArbol(x, z, escala = 1) {
+      const arbol = new THREE.Group();
+      
+      const tronco = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.4 * escala, 0.6 * escala, 6 * escala),
+        new THREE.MeshStandardMaterial({ color: 0x654321 })
+      );
+      tronco.castShadow = true;
+      arbol.add(tronco);
+      
+      const copas = new THREE.Mesh(
+        new THREE.SphereGeometry(2.5 * escala, 12, 12),
+        new THREE.MeshStandardMaterial({ 
+          color: 0x228b22,
+          roughness: 0.8
+        })
+      );
+      copas.position.y = 5 * escala;
+      copas.castShadow = true;
+      arbol.add(copas);
+      
+      arbol.position.set(x, 3 * escala, z);
+      return arbol;
+    }
+
+    // Bosque
+    for (let i = 0; i < 120; i++) {
+      let x, z;
+      let posicionValida = false;
+      
+      while (!posicionValida) {
+        x = -80 + Math.random() * 160;
+        z = 70 + Math.random() * 80;
+        
+        const distanciaHuerto = Math.sqrt(Math.pow(x - (-60), 2) + Math.pow(z - 60, 2));
+        const distanciaMariposas = Math.sqrt(Math.pow(x - 50, 2) + Math.pow(z - 50, 2));
+        const distanciaSendero = Math.abs(x - Math.sin((z / 170) * Math.PI * 2) * 8);
+        const distanciaBanca = Math.sqrt(Math.pow(x, 2) + Math.pow(z - 100, 2));
+        
+        if (distanciaHuerto > 25 && distanciaMariposas > 20 && distanciaSendero > 8 && distanciaBanca > 10) {
+          posicionValida = true;
+        }
+      }
+      
+      const escala = 0.9 + Math.random() * 0.7;
+      scene.add(crearArbol(x, z, escala));
+    }
+    
+    for (let i = 0; i < 80; i++) {
+      let x, z;
+      let posicionValida = false;
+      
+      while (!posicionValida) {
+        x = -100 + Math.random() * 200;
+        z = 145 + Math.random() * 25;
+        
+        const distanciaSendero = Math.abs(x - Math.sin((z / 170) * Math.PI * 2) * 8);
+        
+        if (distanciaSendero > 8) {
+          posicionValida = true;
+        }
+      }
+      
+      const escala = 0.7 + Math.random() * 0.5;
+      scene.add(crearArbol(x, z, escala));
+    }
+    
+    for (let i = 0; i < 50; i++) {
+      let x, z;
+      let posicionValida = false;
+      
+      while (!posicionValida) {
+        x = -70 + Math.random() * 140;
+        z = 40 + Math.random() * 35;
+        
+        const distanciaHuerto = Math.sqrt(Math.pow(x - (-60), 2) + Math.pow(z - 60, 2));
+        const distanciaMariposas = Math.sqrt(Math.pow(x - 50, 2) + Math.pow(z - 50, 2));
+        const distanciaSendero = Math.abs(x - Math.sin((z / 170) * Math.PI * 2) * 8);
+        
+        if (distanciaHuerto > 25 && distanciaMariposas > 20 && distanciaSendero > 8) {
+          posicionValida = true;
+        }
+      }
+      
+      const escala = 1.0 + Math.random() * 0.5;
+      scene.add(crearArbol(x, z, escala));
+    }
+
+    for (let i = 0; i < 40; i++) {
+      let x, z;
+      let posicionValida = false;
+      
+      while (!posicionValida) {
+        x = -120 + Math.random() * 30;
+        z = -100 + Math.random() * 200;
+        
+        const distanciaHuerto = Math.sqrt(Math.pow(x - (-60), 2) + Math.pow(z - 60, 2));
+        const distanciaTulipanes = Math.sqrt(Math.pow(x - (-60), 2) + Math.pow(z - (-60), 2));
+        
+        if (distanciaHuerto > 25 && distanciaTulipanes > 25) {
+          posicionValida = true;
+        }
+      }
+      
+      const escala = 0.8 + Math.random() * 0.6;
+      scene.add(crearArbol(x, z, escala));
+    }
+
+    for (let i = 0; i < 30; i++) {
+      let x, z;
+      let posicionValida = false;
+      
+      while (!posicionValida) {
+        x = 90 + Math.random() * 30;
+        z = -100 + Math.random() * 200;
+        
+        const distanciaMariposas = Math.sqrt(Math.pow(x - 50, 2) + Math.pow(z - 50, 2));
+        
+        if (distanciaMariposas > 20) {
+          posicionValida = true;
+        }
+      }
+      
+      const escala = 0.8 + Math.random() * 0.6;
+      scene.add(crearArbol(x, z, escala));
+    }
+
+    const posicionesArboles = [
+      [-40, 30, 1.2], [40, 35, 1.1], [-30, -30, 1.0], [30, -35, 1.3]
+    ];
+    posicionesArboles.forEach(([x, z, escala]) => {
+      const distanciaMariposas = Math.sqrt(Math.pow(x - 50, 2) + Math.pow(z - 50, 2));
+      if (distanciaMariposas > 20) {
+        scene.add(crearArbol(x, z, escala));
+      }
+    });
+
+    // MARCADORES
+    function crearMarcador(x, z, color) {
+      const marcador = new THREE.Mesh(
+        new THREE.CylinderGeometry(3, 3, 0.5, 16),
+        new THREE.MeshStandardMaterial({ 
+          color: color,
+          emissive: color,
+          emissiveIntensity: 0.5,
+          transparent: true,
+          opacity: 0.7
+        })
+      );
+      marcador.position.set(x, 0.3, z);
+      return marcador;
+    }
+
+    const marcadorCastillo = crearMarcador(0, 30, 0x4169e1);
+    scene.add(marcadorCastillo);
+
+    const marcadorBanca = crearMarcador(0, 100, 0x8b4513);
+    scene.add(marcadorBanca);
+
+    const marcadorMariposas = crearMarcador(50, 50, 0xff69b4);
+    scene.add(marcadorMariposas);
+
+    const marcadorFresas = crearMarcador(-60, 60, 0xff0000);
+    scene.add(marcadorFresas);
+
+    const marcadorTulipanes = crearMarcador(-60, -60, 0xff1493);
+    scene.add(marcadorTulipanes);
+
+    const marcadorRio = crearMarcador(60, 0, 0x4682b4);
+    scene.add(marcadorRio);
+    
+    const marcadorMontanas = crearMarcador(0, 160, 0x4a7c2c);
+    scene.add(marcadorMontanas);
+
+    // ZONAS INTERACTIVAS
+    const zonas = [
+      {
+        nombre: "Castillo Real",
+        x: 0, z: 30,
+        radio: 15,
+        titulo: "🏰 Castillo del Reino",
+        mensaje: "Bienvenida al majestuoso castillo real. Las banderas son hermosas. Mi Princesita, este es tu hogar, el hogar que creé en mi corazón y alma para ti. Tu eres la princesita de mi vida, tu eres la princesita de mi mundo, soporta. Princesita, se puede divisar un campo de tulipanes, ve a verlo."
+      },
+      {
+        nombre: "Banca",
+        x: 0, z: 100,
+        radio: 8,
+        titulo: "🪑 Banca del Bosque",
+        mensaje: "Un refugio tranquilo en medio del bosque encantado. Una banca, en medio de la naturaleza, el lugar de nuestro primer beso, ese dia volví muy feliz a casa, sentí lo que es ir al paraíso y volver. Cuando te beso soy muy feliz, me siento en el paraíso, soy adicto a tus labios. Princesita, mira las montañas más de cerca."
+      },
+      {
+        nombre: "Mariposas",
+        x: 50, z: 50,
+        radio: 12,
+        titulo: "🦋 Jardín de las Mariposas",
+        mensaje: "Un lugar mágico donde las mariposas danzan en el aire. Las mariposas, hermosas y libres, que muestran y deslumbran con su hermosura cuando elevan sus alas, así como tú Princesita, eres divina y libre como las mariposas, porque tú eres maravillosa, con solo pasar, maravillas a todos con tu presencia. Mira princesita, una banca en medio del bosque, ve a verla."
+      },
+      {
+        nombre: "Huerto de Fresas",
+        x: -60, z: 60,
+        radio: 15,
+        titulo: "🍓 Huerto Real de Fresas",
+        mensaje: "El huerto de fresas más dulce del reino. Estas fresas mágicas, las cultivé para ti, solo para ti, crecen todo el año en tu reino, para que las puedas comer cuando quieras, eres la mejor, maravillosa y hermosa Princesa. Mira ese río Princesita, vamos a verlo más cerca, shiiii?"
+      },
+      {
+        nombre: "Campo de Tulipanes",
+        x: -60, z: -60,
+        radio: 18,
+        titulo: "🌷 Campo de Tulipanes Encantados",
+        mensaje: "Un hermoso campo de tulipanes en tres colores mágicos: rosa para el amor, verde para la esperanza y azul para la sabiduría e inteligencia. Cada color te representa, porque tú eres amor, esperanza, sabiduría, inteligencia y hermosura Princesita, lo planté para ti, tus flores favoritas, te adoro Princesita mía. Miraaaaaa, un cultivo de fresas, vamos a verlo Princesita."
+      },
+      {
+        nombre: "Río",
+        x: 60, z: 0,
+        radio: 15,
+        titulo: "🌊 Río de Cristal",
+        mensaje: "El río de cristal atraviesa todo el reino trayendo vida y prosperidad. Sus aguas son tan puras como tu alma y tu corazón, eres la más hermosa, el río te representa porque traes vida, paz y eres hermosa como las aguas de este río, eres maravillosa Princesita, no puedo dejar de admirar tu belleza. Princesita hay un grupo de mariposas hermosas volando, vamos a verlas?"
+      },
+      {
+        nombre: "Montañas",
+        x: 0, z: 160,
+        radio: 25,
+        titulo: "🏔️ Montañas Verdes del Reino",
+        mensaje: "Las montañas verdes que protegen el reino desde tiempos ancestrales. Cubiertas de vegetación exuberante, son como tú, tu belleza se representa en las montañas, hermosas, tú eres la encarnación de lo más hermoso del mundo junto en tu ser, las montañas son tu espejo, cuando quieras saber qué tan hermosa eres, mira las montañas y el cielo, así y más es tu hermosura, ellos son tu espejo Princesita."
+      }
+    ];
+
+    // PARTÍCULAS
+    const particulasGeom = new THREE.BufferGeometry();
+    const particulasCount = 1200;
+    const posArray = new Float32Array(particulasCount * 3);
+    
+    for (let i = 0; i < particulasCount; i++) {
+      posArray[i * 3] = (Math.random() - 0.5) * 400;
+      posArray[i * 3 + 1] = Math.random() * 50 + 5;
+      posArray[i * 3 + 2] = (Math.random() - 0.5) * 400;
+    }
+    
+    particulasGeom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const particulas = new THREE.Points(
+      particulasGeom,
+      new THREE.PointsMaterial({ 
+        color: 0xffd700, 
+        size: 0.6,
+        transparent: true,
+        opacity: 0.7
+      })
+    );
+    scene.add(particulas);
+
+    // CONTROLES
+    const teclas = {
+      ArrowUp: false,
+      ArrowDown: false,
+      ArrowLeft: false,
+      ArrowRight: false,
+      KeyE: false
+    };
+
+    let velocidadMovimiento = 0.4;
+    let zonaActual = null;
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code in teclas) {
+        teclas[e.code] = true;
+      }
+      
+      if (e.code === 'KeyE' && zonaActual && document.getElementById('mensajeZona').style.display !== 'block') {
+        mostrarMensaje(zonaActual);
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.code in teclas) {
+        teclas[e.code] = false;
+      }
+    });
+
+    function actualizarMovimiento() {
+      if (teclas.ArrowUp) {
+        princesa.position.z -= velocidadMovimiento;
+        princesa.rotation.y = 0;
+      }
+      if (teclas.ArrowDown) {
+        princesa.position.z += velocidadMovimiento;
+        princesa.rotation.y = Math.PI;
+      }
+      if (teclas.ArrowLeft) {
+        princesa.position.x -= velocidadMovimiento;
+        princesa.rotation.y = Math.PI / 2;
+      }
+      if (teclas.ArrowRight) {
+        princesa.position.x += velocidadMovimiento;
+        princesa.rotation.y = -Math.PI / 2;
+      }
+
+      princesa.position.x = Math.max(-140, Math.min(140, princesa.position.x));
+      princesa.position.z = Math.max(-140, Math.min(180, princesa.position.z));
+
+      zonaActual = null;
+      for (let zona of zonas) {
+        const distancia = Math.sqrt(
+          Math.pow(princesa.position.x - zona.x, 2) + 
+          Math.pow(princesa.position.z - zona.z, 2)
+        );
+        
+        if (distancia < zona.radio) {
+          zonaActual = zona;
+          break;
+        }
+      }
+
+      const indicador = document.getElementById('indicadorZona');
+      indicador.style.display = zonaActual ? 'block' : 'none';
+    }
+
+    function mostrarMensaje(zona) {
+      const mensajeDiv = document.getElementById('mensajeZona');
+      document.getElementById('mensajeTitulo').textContent = zona.titulo;
+      document.getElementById('mensajeTexto').textContent = zona.mensaje;
+      mensajeDiv.style.display = 'block';
+    }
+
+    function cerrarMensaje() {
+      document.getElementById('mensajeZona').style.display = 'none';
+    }
+    window.cerrarMensaje = cerrarMensaje;
+
+    // CÁMARA
+    camera.position.set(60, 40, 80);
+    camera.lookAt(0, 10, 0);
+
+    let cameraAngle = 0;
+    let cameraHeight = 35;
+    let cameraDistance = 50;
+    
+    let mouseDown = false;
+    let mouseX = 0;
+    let mouseY = 0;
+
+    renderer.domElement.addEventListener('mousedown', (e) => {
+      mouseDown = true;
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+
+    renderer.domElement.addEventListener('mouseup', () => {
+      mouseDown = false;
+    });
+
+    renderer.domElement.addEventListener('mousemove', (e) => {
+      if (mouseDown) {
+        const deltaX = e.clientX - mouseX;
+        const deltaY = e.clientY - mouseY;
+        
+        cameraAngle -= deltaX * 0.005;
+        cameraHeight = Math.max(15, Math.min(80, cameraHeight - deltaY * 0.2));
+        
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      }
+    });
+
+    renderer.domElement.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      cameraDistance = Math.max(25, Math.min(120, cameraDistance + e.deltaY * 0.1));
+    });
+
+    // ANIMACIÓN
+    let tiempo = 0;
+
+    function animar() {
+      requestAnimationFrame(animar);
+      tiempo += 0.01;
+
+      actualizarMovimiento();
+
+      particulas.rotation.y += 0.0005;
+      const positions = particulas.geometry.attributes.position.array;
+      for (let i = 0; i < positions.length; i += 3) {
+        positions[i + 1] += Math.sin(tiempo * 2 + i) * 0.01;
+        if (positions[i + 1] > 60) positions[i + 1] = 5;
+        if (positions[i + 1] < 5) positions[i + 1] = 60;
+      }
+      particulas.geometry.attributes.position.needsUpdate = true;
+
+      grupoMariposas.rotation.y += 0.005;
+      grupoMariposas.children.forEach((mariposa, i) => {
+        mariposa.position.y = 2 + Math.sin(tiempo * 2 + i) * 1.5;
+        mariposa.rotation.y = tiempo + i;
+      });
+
+      [marcadorCastillo, marcadorBanca, marcadorMariposas, marcadorFresas, marcadorTulipanes, marcadorRio, marcadorMontanas].forEach(m => {
+        m.rotation.y += 0.02;
+      });
+
+      castillo.children.forEach((child, index) => {
+        if (index >= 1 && index <= 4) {
+          const bandera = child.children[3];
+          if (bandera) {
+            bandera.rotation.z = Math.sin(tiempo * 2 + index) * 0.1;
+          }
+        }
+      });
+
+      camera.position.x = princesa.position.x + Math.cos(cameraAngle) * cameraDistance;
+      camera.position.z = princesa.position.z + Math.sin(cameraAngle) * cameraDistance;
+      camera.position.y = princesa.position.y + cameraHeight;
+      camera.lookAt(princesa.position.x, princesa.position.y + 3, princesa.position.z);
+
+      renderer.render(scene, camera);
+    }
+
+    animar();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    console.log('✅ Reino completo con 7 zonas interactivas! 🏰🦋🍓🌷🌊🏔️');
+  </script>
+</body>
+</html>
