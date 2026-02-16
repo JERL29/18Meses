@@ -183,25 +183,41 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    //  MÚSICA DE FONDO
+   // 🎵 MÚSICA DE FONDO (VERSIÓN CORREGIDA)
 const listener = new THREE.AudioListener();
 camera.add(listener);
 
 const sonido = new THREE.Audio(listener);
 const audioLoader = new THREE.AudioLoader();
 
-audioLoader.load('Volvi_a_nacer.mp3', function(buffer) {
-  sonido.setBuffer(buffer);
-  sonido.setLoop(true);
-  sonido.setVolume(0.5);
-});
+let audioListo = false;
 
-// Reproducir al primer clic (necesario por políticas del navegador)
+audioLoader.load(
+  'Volvi_a_nacer.mp3',
+  function(buffer) {
+    sonido.setBuffer(buffer);
+    sonido.setLoop(true);
+    sonido.setVolume(0.5);
+    audioListo = true;
+    console.log("✅ Música cargada correctamente");
+  },
+  undefined,
+  function(error) {
+    console.error("❌ Error cargando el audio:", error);
+  }
+);
+
+// Reproducir al primer clic (necesario en navegadores)
 window.addEventListener('click', () => {
-  if (!sonido.isPlaying) {
-    sonido.play();
+  if (audioListo && !sonido.isPlaying) {
+    sonido.play().then(() => {
+      console.log("🎵 Música reproduciéndose");
+    }).catch(err => {
+      console.error("❌ Error al reproducir:", err);
+    });
   }
 });
+
 
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
