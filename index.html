@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reino Encantado 🏰</title>
+  <title>El reino de mi Princesita</title>
   
   <style>
     * {
@@ -154,7 +154,7 @@
     <h3>🎮 Controles</h3>
     <p>⬆️⬇️⬅️➡️ <strong>Flechas:</strong> Mover princesa</p>
     <p>🖱️ <strong>Arrastrar:</strong> Rotar cámara</p>
-    <p>🔍 <strong>Zoom</strong> 
+    <p>🔍 <strong>Scroll:</strong> Zoom in/out</p>
     <p>⌨️ <strong>E:</strong> Interactuar en zonas</p>
     <p style="color: #ffd700; margin-top: 10px;">📹 <strong>La cámara te sigue!</strong></p>
     <p style="color: #4ade80; margin-top: 5px;">💡 <strong>¡7 zonas por descubrir!</strong></p>
@@ -172,7 +172,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    console.log('🏰 Iniciando Reino Encantado...');
+    console.log(' Iniciando Reino Encantado...');
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
@@ -182,6 +182,27 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
+
+    //  MÚSICA DE FONDO
+const listener = new THREE.AudioListener();
+camera.add(listener);
+
+const sonido = new THREE.Audio(listener);
+const audioLoader = new THREE.AudioLoader();
+
+audioLoader.load('Volvi_a_nacer.mp3', function(buffer) {
+  sonido.setBuffer(buffer);
+  sonido.setLoop(true);
+  sonido.setVolume(0.5);
+});
+
+// Reproducir al primer clic (necesario por políticas del navegador)
+window.addEventListener('click', () => {
+  if (!sonido.isPlaying) {
+    sonido.play();
+  }
+});
+
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
@@ -1132,5 +1153,4 @@ scene.add(numeroTrasero);
     console.log('✅ Reino completo con 7 zonas interactivas! 🏰🦋🍓🌷🌊🏔️');
   </script>
 </body>
-
 </html>
